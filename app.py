@@ -1,31 +1,51 @@
 import streamlit as st
 from PIL import Image
-import pytesseract
+import numpy as np
+
+# OCR libraries
+import easyocr
+import keras_ocr
 from textblob import TextBlob
 
-st.set_page_config(page_title="AI Image → Sentence MVP", layout="centered")
+st.set_page_config(page_title="Robust AI OCR MVP", layout="centered")
+st.title("🤖 Multi-Agent OCR + NLP MVP")
 
-st.title("🧠 AI Agentic MVP (OCR + Spell/Grammar Fix)")
-
-uploaded_file = st.file_uploader("📤 Upload an image (jpg/jpeg/png/tiff)", 
-                                 type=["jpg", "jpeg", "png", "tiff"])
+uploaded_file = st.file_uploader("📤 Upload an image", type=["jpg","jpeg","png","tiff"])
 
 if uploaded_file:
-    # Load image
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    # OCR extraction
-    raw_text = pytesseract.image_to_string(image)
+    img_array = np.array(image)
+    results = []
 
-    if raw_text.strip():
-        st.subheader("🔍 Extracted Sentence (OCR)")
-        st.write(raw_text)
+    # --- Strategy 1: EasyOCR ---
+    try:
+        reader = easyocr.Reader(['en'], gpu=False)
+        res = reader.readtext(img_array, detail=0)
+        if res:
+            results.append(" ".join(res))
+    except Exception as e:
+        results.append(f"[EasyOCR failed: {e}]")
 
-        # Basic NLP correction
-        corrected = str(TextBlob(raw_text).correct())
+    # --- Strategy 2: Keras-OCR ---
+    try:
+        pipeline = keras_ocr.pipeline.Pipeline()
+        prediction_groups = pipeline.recognize([img_array])
+        text = " ".join([word for word, box in prediction_groups[0]])
+        if text:
+            results.append(text)
+    except Exception as e:
+        results.append(f"[Keras-OCR failed: {e}]")
 
-        st.subheader("✅ Corrected Sentence (Spell + Grammar)")
-        st.write(corrected)
-    else:
-        st.warning("⚠️ No readable text found in image. Try clearer input.")
+    # --- Combine results ---
+    st.subheader("🔍 Extracted Sentences")
+    for i, txt in enumerate(results, 1):
+        st.write(f"Method {i}: {txt}")
+
+    # --- Correction Step ---
+    st.subheader("✅ Corrected Sentences (Spell + Grammar)")
+    for i, txt in enumerate(results, 1):
+        if txt and not txt.startswith("["):
+            corrected = str(TextBlob(txt).correct())
+            st.write(f"Method {i}: {corrected}")
