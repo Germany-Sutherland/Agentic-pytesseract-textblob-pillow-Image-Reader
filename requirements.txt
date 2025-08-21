@@ -1,6 +1,6 @@
 streamlit
 pillow
 numpy
-easyocr
-keras-ocr
 textblob
+transformers
+torch
