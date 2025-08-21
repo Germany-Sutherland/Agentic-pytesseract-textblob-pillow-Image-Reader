@@ -1,0 +1,1 @@
+# Agentic-pytesseract-textblob-pillow-Image-Reader
