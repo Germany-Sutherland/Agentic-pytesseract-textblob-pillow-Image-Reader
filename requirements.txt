@@ -1,4 +1,6 @@
 streamlit
 pillow
-pytesseract
+numpy
+easyocr
+keras-ocr
 textblob
